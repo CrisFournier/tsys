@@ -5,3 +5,4 @@ export class UpdateContaPagarDto extends PartialType(CreateContaPagarDto) {}
 
 
 
+
