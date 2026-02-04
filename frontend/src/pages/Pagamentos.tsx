@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { pagamentoService } from '../services/pagamento.service';
 import { Pagamento } from '../types';
-import { format } from 'date-fns';
+import { formatarValor, formatarData } from '../utils/formatters';
 
 const Pagamentos = () => {
   const [pagamentos, setPagamentos] = useState<Pagamento[]>([]);
@@ -21,13 +21,6 @@ const Pagamentos = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(value);
   };
 
   if (loading) {
@@ -63,13 +56,13 @@ const Pagamentos = () => {
               pagamentos.map((pagamento) => (
                 <tr key={pagamento.id}>
                   <td>
-                    {format(new Date(pagamento.data_pagamento), 'dd/MM/yyyy')}
+                    {formatarData(pagamento.data_pagamento)}
                   </td>
                   <td>
                     {pagamento.contaPagar?.fornecedor?.nome || '-'}
                   </td>
                   <td>{pagamento.contaPagar?.descricao || '-'}</td>
-                  <td>{formatCurrency(Number(pagamento.valor_pago))}</td>
+                  <td>{formatarValor(pagamento.valor_pago, { incluirMoeda: true })}</td>
                   <td>{pagamento.forma_pagamento}</td>
                   <td>{pagamento.observacoes || '-'}</td>
                 </tr>

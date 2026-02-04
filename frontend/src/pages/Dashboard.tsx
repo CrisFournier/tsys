@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { contaPagarService } from '../services/conta-pagar.service';
 import { ContaPagar } from '../types';
-import { format } from 'date-fns';
+import { formatarValor, formatarData } from '../utils/formatters';
 
 const Dashboard = () => {
   const [contas, setContas] = useState<ContaPagar[]>([]);
@@ -40,31 +40,24 @@ const Dashboard = () => {
 
   const contasVencidas = contas.filter((c) => c.status === 'VENCIDO').length;
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(value);
-  };
-
   return (
     <div>
       <h1 style={{ marginBottom: '2rem', color: '#2c3e50' }}>Dashboard</h1>
 
       <div className="stats-grid">
         <div className="stat-card">
-          <div className="stat-value">{formatCurrency(totalPagar)}</div>
+          <div className="stat-value">{formatarValor(totalPagar, { incluirMoeda: true })}</div>
           <div className="stat-label">Total a Pagar</div>
         </div>
         <div className="stat-card">
           <div className="stat-value" style={{ color: '#e74c3c' }}>
-            {formatCurrency(totalVencidas)}
+            {formatarValor(totalVencidas, { incluirMoeda: true })}
           </div>
           <div className="stat-label">Vencidas</div>
         </div>
         <div className="stat-card">
           <div className="stat-value" style={{ color: '#27ae60' }}>
-            {formatCurrency(totalPagas)}
+            {formatarValor(totalPagas, { incluirMoeda: true })}
           </div>
           <div className="stat-label">Total Pagas</div>
         </div>
@@ -99,9 +92,9 @@ const Dashboard = () => {
                   <tr key={conta.id}>
                     <td>{conta.fornecedor?.nome || '-'}</td>
                     <td>{conta.descricao}</td>
-                    <td>{formatCurrency(Number(conta.valor))}</td>
+                    <td>{formatarValor(conta.valor, { incluirMoeda: true })}</td>
                     <td>
-                      {format(new Date(conta.data_vencimento), 'dd/MM/yyyy')}
+                      {formatarData(conta.data_vencimento)}
                     </td>
                     <td>
                       <span className="badge badge-vencido">

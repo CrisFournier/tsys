@@ -11,9 +11,9 @@ import {
   FormaPagamento,
   PeriodicidadeRecorrente,
 } from '../types';
-import { format } from 'date-fns';
 import SelectWithCreate from '../components/SelectWithCreate';
 import { getErrorMessage } from '../utils/errorHandler';
+import { formatarValor, converterParaNumero, formatarData } from '../utils/formatters';
 
 const ContasPagar = () => {
   const [contas, setContas] = useState<ContaPagar[]>([]);
@@ -44,6 +44,8 @@ const ContasPagar = () => {
     forma_pagamento: 'PIX' as FormaPagamento,
     observacoes: '',
   });
+  // Estado para o valor do input (string) durante a digitação
+  const [valorInput, setValorInput] = useState<string>('');
 
   useEffect(() => {
     loadData();
@@ -112,6 +114,11 @@ const ContasPagar = () => {
     e.preventDefault();
     try {
       const dadosParaEnviar = getCamposPermitidos(formData);
+      
+      // Garantir que valor seja sempre um número decimal com 2 casas
+      if (dadosParaEnviar.valor !== undefined) {
+        dadosParaEnviar.valor = converterParaNumero(dadosParaEnviar.valor);
+      }
 
       if (editingConta) {
         await contaPagarService.update(editingConta.id, dadosParaEnviar);
@@ -121,7 +128,8 @@ const ContasPagar = () => {
       setShowModal(false);
       setEditingConta(null);
       resetForm();
-      loadContas();
+      // Aguardar o recarregamento para garantir que a atualização seja refletida
+      await loadContas();
     } catch (error) {
       const errorMessage = getErrorMessage(error);
       console.error('Erro ao salvar conta:', error);
@@ -152,13 +160,20 @@ const ContasPagar = () => {
 
   const handleEdit = (conta: ContaPagar) => {
     setEditingConta(conta);
+    // Garantir que valor seja sempre um número decimal com 2 casas
+    const valorRaw = conta.valor as number | string;
+    const valorNumerico = converterParaNumero(valorRaw);
+    
     setFormData({
       ...conta,
+      valor: valorNumerico,
       data_vencimento: conta.data_vencimento.split('T')[0],
       data_emissao: conta.data_emissao.split('T')[0],
       recorrente: conta.recorrente || false,
       periodicidade: conta.periodicidade,
     });
+    // Inicializar o valor do input sem formatação forçada (para permitir edição livre)
+    setValorInput(valorNumerico > 0 ? valorNumerico.toString().replace('.', ',') : '');
     setShowModal(true);
   };
 
@@ -194,13 +209,7 @@ const ContasPagar = () => {
       periodicidade: undefined,
       observacoes: '',
     });
-  };
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(value);
+    setValorInput('');
   };
 
   const getStatusBadgeClass = (status: string) => {
@@ -278,9 +287,9 @@ const ContasPagar = () => {
                 <tr key={conta.id}>
                   <td>{conta.fornecedor?.nome || '-'}</td>
                   <td>{conta.descricao}</td>
-                  <td>{formatCurrency(Number(conta.valor))}</td>
+                  <td>{formatarValor(conta.valor, { incluirMoeda: true })}</td>
                   <td>
-                    {format(new Date(conta.data_vencimento), 'dd/MM/yyyy')}
+                    {formatarData(conta.data_vencimento)}
                   </td>
                   <td>
                     <span className={`badge ${getStatusBadgeClass(conta.status)}`}>
@@ -396,13 +405,72 @@ const ContasPagar = () => {
               <div className="form-group">
                 <label className="form-label">Valor *</label>
                 <input
-                  type="number"
-                  step="0.01"
+                  type="text"
                   className="form-input"
-                  value={formData.valor}
-                  onChange={(e) =>
-                    setFormData({ ...formData, valor: parseFloat(e.target.value) })
-                  }
+                  value={valorInput}
+                  onChange={(e) => {
+                    // Permite apenas números, vírgula, ponto e hífen
+                    let value = e.target.value.replace(/[^\d,.-]/g, '');
+                    
+                    // Garante que só tenha um separador decimal (vírgula ou ponto)
+                    const partesVirgula = value.split(',');
+                    const partesPonto = value.split('.');
+                    
+                    // Se tiver múltiplas vírgulas ou pontos, mantém apenas o primeiro
+                    if (partesVirgula.length > 2) {
+                      value = partesVirgula[0] + ',' + partesVirgula.slice(1).join('');
+                    }
+                    if (partesPonto.length > 2) {
+                      value = partesPonto[0] + '.' + partesPonto.slice(1).join('');
+                    }
+                    
+                    // Se tiver vírgula e ponto, mantém apenas o último como separador decimal
+                    if (value.includes(',') && value.includes('.')) {
+                      const indiceVirgula = value.lastIndexOf(',');
+                      const indicePonto = value.lastIndexOf('.');
+                      if (indiceVirgula > indicePonto) {
+                        // Vírgula é o separador decimal, remove pontos
+                        value = value.replace(/\./g, '');
+                      } else {
+                        // Ponto é o separador decimal, remove vírgulas
+                        value = value.replace(/,/g, '');
+                      }
+                    }
+                    
+                    // Atualiza o estado do input (string) - permite deletar normalmente
+                    setValorInput(value);
+                    
+                    // Converte para número e atualiza formData em background
+                    // Se o campo estiver vazio, define como 0
+                    const numValue = value === '' ? 0 : converterParaNumero(value);
+                    setFormData({ ...formData, valor: numValue });
+                  }}
+                  onBlur={(e) => {
+                    // Quando sai do campo, formata o valor com 2 casas decimais e vírgula
+                    const numValue = converterParaNumero(e.target.value);
+                    if (numValue > 0) {
+                      const valorFormatado = formatarValor(numValue, { permiteVazio: true });
+                      setValorInput(valorFormatado);
+                    } else {
+                      setValorInput('');
+                    }
+                    setFormData({ ...formData, valor: numValue });
+                  }}
+                  onFocus={(e) => {
+                    // Quando foca no campo, remove a formatação para facilitar edição
+                    // Converte o valor formatado de volta para formato editável
+                    const valorAtual = e.target.value;
+                    if (valorAtual) {
+                      // Remove vírgula e formatação, mantém apenas números e um separador
+                      const valorEditavel = valorAtual.replace(/,/g, '.').replace(/[^\d.-]/g, '');
+                      // Se tiver decimais, converte ponto para vírgula para edição
+                      const valorLimpo = valorEditavel.includes('.') 
+                        ? valorEditavel.replace('.', ',')
+                        : valorEditavel;
+                      setValorInput(valorLimpo);
+                    }
+                  }}
+                  placeholder="R$ 0,00"
                   required
                 />
               </div>

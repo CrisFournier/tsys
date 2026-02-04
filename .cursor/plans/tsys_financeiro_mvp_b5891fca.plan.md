@@ -1,9 +1,3 @@
----
-name: TSYS Financeiro MVP
-overview: "Criar MVP do sistema ERP TSYS Financeiro com NestJS, PostgreSQL e React, implementando o fluxo básico: Cadastro de Fornecedor → Registro de Conta a Pagar → Baixa de Pagamentos."
-todos: []
----
-
 # TSYS Financeiro - MVP
 
 ## Visão Geral
@@ -30,7 +24,7 @@ Sistema ERP financeiro desenvolvido com NestJS (backend) e React (frontend), uti
 
 ## Estrutura do Projeto
 
-```
+```javascript
 tsys/
 ├── backend/                 # API NestJS
 │   ├── src/
@@ -53,6 +47,8 @@ tsys/
 │   └── package.json
 └── README.md
 ```
+
+
 
 ## Modelagem de Dados (MVP)
 
@@ -210,4 +206,3 @@ tsys/
 - Autenticação e autorização
 - Relatórios e gráficos
 - Exportação de dados
-- Provisionamento futuro

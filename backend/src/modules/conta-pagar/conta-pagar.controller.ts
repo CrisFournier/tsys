@@ -7,11 +7,13 @@ import {
   Param,
   Delete,
   Query,
+  BadRequestException,
 } from '@nestjs/common';
 import { ContaPagarService } from './conta-pagar.service';
 import { CreateContaPagarDto } from './dto/create-conta-pagar.dto';
 import { UpdateContaPagarDto } from './dto/update-conta-pagar.dto';
 import { FilterContaPagarDto } from './dto/filter-conta-pagar.dto';
+import { parseDateLocal } from '../../common/utils/date-formatters';
 
 @Controller('contas-pagar')
 export class ContaPagarController {
@@ -55,13 +57,26 @@ export class ContaPagarController {
       observacoes?: string;
     },
   ) {
-    return this.contaPagarService.registrarPagamento(
-      id,
-      body.valor_pago,
-      new Date(body.data_pagamento),
-      body.forma_pagamento,
-      body.observacoes,
-    );
+    try {
+      return this.contaPagarService.registrarPagamento(
+        id,
+        body.valor_pago,
+        parseDateLocal(body.data_pagamento),
+        body.forma_pagamento,
+        body.observacoes,
+      );
+    } catch (error) {
+      // Se for erro de formatação de data, retorna BadRequest
+      if (error instanceof Error && (error.message.includes('data') || error.message.includes('Data'))) {
+        throw new BadRequestException(`Data inválida: ${error.message}`);
+      }
+      // Se for erro de validação de data (ano, mês, dia inválido)
+      if (error instanceof Error && (error.message.includes('Ano') || error.message.includes('Mês') || error.message.includes('Dia'))) {
+        throw new BadRequestException(`Data inválida: ${error.message}`);
+      }
+      // Re-lança outros erros
+      throw error;
+    }
   }
 }
 

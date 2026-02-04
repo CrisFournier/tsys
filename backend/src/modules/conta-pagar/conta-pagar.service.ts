@@ -6,6 +6,7 @@ import { CreateContaPagarDto } from './dto/create-conta-pagar.dto';
 import { UpdateContaPagarDto } from './dto/update-conta-pagar.dto';
 import { FilterContaPagarDto } from './dto/filter-conta-pagar.dto';
 import { Pagamento } from '../pagamento/entities/pagamento.entity';
+import { parseDateLocal } from '../../common/utils/date-formatters';
 
 @Injectable()
 export class ContaPagarService {
@@ -19,8 +20,8 @@ export class ContaPagarService {
   async create(createContaPagarDto: CreateContaPagarDto): Promise<ContaPagar> {
     const contaPagar = this.contaPagarRepository.create({
       ...createContaPagarDto,
-      data_vencimento: new Date(createContaPagarDto.data_vencimento),
-      data_emissao: new Date(createContaPagarDto.data_emissao),
+      data_vencimento: parseDateLocal(createContaPagarDto.data_vencimento),
+      data_emissao: parseDateLocal(createContaPagarDto.data_emissao),
       status: createContaPagarDto.status || StatusContaPagar.PENDENTE,
     });
 
@@ -89,11 +90,15 @@ export class ContaPagarService {
     }
 
     if (updateContaPagarDto.data_vencimento) {
-      updateContaPagarDto.data_vencimento = new Date(updateContaPagarDto.data_vencimento as any) as any;
+      updateContaPagarDto.data_vencimento = parseDateLocal(
+        updateContaPagarDto.data_vencimento as any,
+      ) as any;
     }
 
     if (updateContaPagarDto.data_emissao) {
-      updateContaPagarDto.data_emissao = new Date(updateContaPagarDto.data_emissao as any) as any;
+      updateContaPagarDto.data_emissao = parseDateLocal(
+        updateContaPagarDto.data_emissao as any,
+      ) as any;
     }
 
     Object.assign(contaPagar, updateContaPagarDto);

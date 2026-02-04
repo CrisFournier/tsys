@@ -6,6 +6,7 @@ import { CreatePagamentoDto } from './dto/create-pagamento.dto';
 import { UpdatePagamentoDto } from './dto/update-pagamento.dto';
 import { FilterPagamentoDto } from './dto/filter-pagamento.dto';
 import { ContaPagar, StatusContaPagar } from '../conta-pagar/entities/conta-pagar.entity';
+import { parseDateLocal } from '../../common/utils/date-formatters';
 
 @Injectable()
 export class PagamentoService {
@@ -37,7 +38,7 @@ export class PagamentoService {
 
     const pagamento = this.pagamentoRepository.create({
       ...createPagamentoDto,
-      data_pagamento: new Date(createPagamentoDto.data_pagamento),
+      data_pagamento: parseDateLocal(createPagamentoDto.data_pagamento),
     });
 
     const savedPagamento = await this.pagamentoRepository.save(pagamento);
@@ -92,7 +93,9 @@ export class PagamentoService {
     const pagamento = await this.findOne(id);
 
     if (updatePagamentoDto.data_pagamento) {
-      updatePagamentoDto.data_pagamento = new Date(updatePagamentoDto.data_pagamento as any) as any;
+      updatePagamentoDto.data_pagamento = parseDateLocal(
+        updatePagamentoDto.data_pagamento as any,
+      ) as any;
     }
 
     Object.assign(pagamento, updatePagamentoDto);
