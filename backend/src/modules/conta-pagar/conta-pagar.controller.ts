@@ -48,7 +48,7 @@ export class ContaPagarController {
   }
 
   @Post(':id/pagar')
-  registrarPagamento(
+  async registrarPagamento(
     @Param('id') id: string,
     @Body() body: {
       valor_pago: number;
@@ -57,8 +57,15 @@ export class ContaPagarController {
       observacoes?: string;
     },
   ) {
+    if (!body) {
+      throw new BadRequestException('Dados do pagamento são obrigatórios');
+    }
+    if (!body.data_pagamento) {
+      throw new BadRequestException('Data de pagamento é obrigatória');
+    }
+
     try {
-      return this.contaPagarService.registrarPagamento(
+      return await this.contaPagarService.registrarPagamento(
         id,
         body.valor_pago,
         parseDateLocal(body.data_pagamento),
@@ -74,7 +81,7 @@ export class ContaPagarController {
       if (error instanceof Error && (error.message.includes('Ano') || error.message.includes('Mês') || error.message.includes('Dia'))) {
         throw new BadRequestException(`Data inválida: ${error.message}`);
       }
-      // Re-lança outros erros
+      // Re-lança outros erros (BadRequestException, NotFoundException, etc.)
       throw error;
     }
   }

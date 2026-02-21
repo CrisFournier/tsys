@@ -153,12 +153,15 @@ export class ContaPagarService {
     // Calcular total pago
     const totalPago = await this.calcularTotalPago(id);
 
-    // Atualizar status se totalmente pago
+    // Atualizar status se totalmente pago (usa update para evitar sincronização da relação pagamentos)
     if (totalPago >= Number(contaPagar.valor)) {
-      contaPagar.status = StatusContaPagar.PAGO;
+      await this.contaPagarRepository.update(
+        { id: contaPagar.id },
+        { status: StatusContaPagar.PAGO },
+      );
     }
 
-    return await this.contaPagarRepository.save(contaPagar);
+    return await this.findOne(id);
   }
 
   private async calcularTotalPago(contaPagarId: string): Promise<number> {
